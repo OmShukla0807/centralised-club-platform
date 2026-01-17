@@ -7,6 +7,9 @@ from jose import JWTError, jwt
 import models # We import models so SQLAlchemy "sees" them
 import schemas
 import auth
+import qrcode
+from io import BytesIO
+from fastapi.responses import StreamingResponse
 
 # 1. CREATE TABLES
 # This line says: "Look at all classes in models.py and create tables for them in the DB"
@@ -138,7 +141,7 @@ def create_activity(
     db: Session = Depends(get_db)
 ):
 
-#checaking whether the club exist or not?
+#checking whether the club exist or not?
     club = db.query(models.Club).filter(models.Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
@@ -159,10 +162,45 @@ def create_activity(
         event_time=activity.event_time,
         is_public=activity.is_public,
         club_id=club_id,
-        # Default state is 'CREATED' (from your Model default), so we don't set it manually
     )
     db.add(new_activity)
     db.commit()
     db.refresh(new_activity)#to assign an id to the activity
 
     return new_activity
+
+@app.get("/activities/{activity_id}/qr")
+def generate_qr(
+    activity_id: int, 
+    current_user: models.User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    # 1. Get the Activity
+    activity = db.query(models.Activity).filter(models.Activity.id == activity_id).first()
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # 2. SECURITY CHECK
+    # Only the Club Admin (Host) should be able to see/project the QR code.
+    membership = db.query(models.Membership).filter(
+        models.Membership.user_id == current_user.id,
+        models.Membership.club_id == activity.club_id
+    ).first()
+
+    if not membership or membership.role != models.ClubRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admins can display the QR code")
+
+    # 3. Create the QR Data
+    qr_data = str(activity_id)
+    #currently we only have the activity_id ,later we will encryot this
+    
+    img = qrcode.make(qr_data)
+
+    #saving the image to the memory buffer
+
+    buf = BytesIO()
+    img.save(buf)
+    buf.seek(0) # Rewind the buffer to the beginning so we can read it
+
+    # 6. Return the Image to the Browser
+    return StreamingResponse(buf, media_type="image/png")
