@@ -61,3 +61,8 @@ class ActivityOut(ActivityBase):
     class Config:
         from_attributes = True
         # so that python uses the objects notation not the tradition dictionary method
+
+
+# --- ATTENDANCE --- in the system
+class AttendanceCreate(BaseModel):
+    activity_id: int
