@@ -2,6 +2,8 @@ from fastapi import FastAPI,Depends, HTTPException, status
 from database import engine, Base, get_db
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm#to accept teh form_data
+from jose import JWTError, jwt
 import models # We import models so SQLAlchemy "sees" them
 import schemas
 import auth
@@ -45,24 +47,22 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 # defining the login ENdpoint:Accept JSON → Verify Password → Generate Token.
-@app.post("/login",response_model=schemas.Token)
-def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
-    # first finding the user by provided email
-    user = db.query(models.User).filter(models.User.email == user_credentials.email).first()
+@app.post("/login", response_model=schemas.Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    
+    # NOTICE: The "Authorize" button sends the email inside a field called 'username'
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
 
-    #check if the user exist and the password matches or not:
-    if not user or not auth.verify_password(user_credentials.password, user.password_hash):
+    if not user or not auth.verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # now that the user is succesfull login , we will geneerate the acccess token:
     access_token = auth.create_access_token(
-        data={"sub":str(user.id),"role": user.system_role.value}
+        data={"sub": str(user.id), "role": user.system_role.value}
     )
 
-    #once the user is succefully logined, he is alloted the acccess token:
     return {"access_token": access_token, "token_type": "bearer"}
 
-    
