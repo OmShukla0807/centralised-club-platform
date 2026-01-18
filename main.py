@@ -285,3 +285,18 @@ def join_club(
     db.commit()
 
     return {"message": "Successfully joined the club"}
+
+# --- FRONTEND ROUTES ---
+
+# 1. SERVE LOGIN PAGE
+@app.get("/login-page")
+def login_page(request: Request):
+    # This renders the HTML file and sends it to the browser
+    return templates.TemplateResponse("login.html", {"request": request})
+
+# 2. SERVE SIGNUP PAGE (Placeholder for now)
+@app.get("/signup-page")
+def signup_page(request: Request):
+    # You can create a copy of login.html called signup.html later
+    # For now, let's just use a placeholder to avoid errors
+    return templates.TemplateResponse("base.html", {"request": request})
