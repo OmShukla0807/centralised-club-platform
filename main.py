@@ -13,7 +13,7 @@ import auth
 import qrcode
 from io import BytesIO
 from fastapi.responses import StreamingResponse
-from typing import list
+from typing import List
 
 # 1. CREATE TABLES
 # This line says: "Look at all classes in models.py and create tables for them in the DB"
@@ -298,6 +298,20 @@ def get_clubs(
     clubs = db.query(models.Club).offset(skip).limit(limit).all()
     return clubs
 
+# --- GET EVENTS FOR A CLUB ---
+# URL: GET /clubs/1/activities
+@app.get("/clubs/{club_id}/activities", response_model=List[schemas.ActivityOut])
+def get_club_activities(
+    club_id: int, 
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Security: We allow members to see events.
+    # (For this hackathon, we can just return public + internal events if member)
+    
+    activities = db.query(models.Activity).filter(models.Activity.club_id == club_id).all()
+    return activities
+
 # --- FRONTEND ROUTES ---
 
 # 1. SERVE LOGIN PAGE
@@ -317,3 +331,8 @@ def signup_page(request: Request):
 @app.get("/dashboard")
 def dashboard_page(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+# 4. SERVE CLUB MANAGER PAGE
+@app.get("/manage/{club_id}")
+def manage_club_page(club_id: int, request: Request):
+    return templates.TemplateResponse("manage.html", {"request": request, "club_id": club_id})
