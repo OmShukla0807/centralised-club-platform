@@ -51,7 +51,6 @@
 <script>
     // 1. Get Club ID from the URL (Passed by FastAPI)
     const CLUB_ID = "{{ club_id }}"; 
-    const token = localStorage.getItem("access_token");
 
     // --- LOAD EVENTS ---
     async function loadEvents() {
@@ -78,11 +77,15 @@
     }
 
     // --- CREATE EVENT ---
+    // --- CREATE EVENT ---
     document.getElementById("createEventForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const title = document.getElementById("title").value;
         const time = document.getElementById("event_time").value;
         const isPublic = document.getElementById("is_public").value === "true";
+
+        // DEBUG: Print what we are sending
+        console.log("Sending data:", { title, event_time: time, is_public: isPublic });
 
         const response = await fetch(`/clubs/${CLUB_ID}/activities`, {
             method: "POST",
@@ -92,17 +95,20 @@
             },
             body: JSON.stringify({
                 title: title,
-                event_time: time,
+                event_time: time, 
                 is_public: isPublic,
-                description: "Created via Admin Panel"
+                description: "Created via Admin Panel" // Ensure this matches your Schema!
             })
         });
 
         if (response.ok) {
             alert("Event Created!");
-            loadEvents(); // Refresh the list
+            loadEvents(); 
         } else {
-            alert("Failed. Are you the Admin?");
+            // FIX: Print the ACTUAL error from the server
+            const errorData = await response.json();
+            console.error("Server Error:", errorData);
+            alert(`Failed: ${JSON.stringify(errorData.detail)}`);
         }
     });
 
