@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Campus Connect{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 2rem auto;">
+    <h2 style="text-align: center;">Welcome Back</h2>
+    
+    <form id="loginForm">
+        <div style="margin-bottom: 1rem;">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="username" required style="width: 100%; padding: 0.5rem; margin-top: 0.5rem;">
+            </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required style="width: 100%; padding: 0.5rem; margin-top: 0.5rem;">
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%;">Login</button>
+        <p id="error-msg" style="color: red; text-align: center; display: none;">Invalid credentials</p>
+    </form>
+
+    <p style="text-align: center; margin-top: 1rem;">
+        New here? <a href="/signup-page">Create an account</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('error-msg');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Stop the page from reloading
+        
+        // 1. GATHER DATA
+        // We use FormData because your backend (OAuth2PasswordRequestForm) expects form-data, not JSON.
+        const formData = new FormData(form);
+
+        // 2. SEND TO BACKEND
+        try {
+            const response = await fetch('/login', {
+                method: 'POST',
+                body: formData 
+                // Fetch automatically sets the correct Content-Type for FormData
+            });
+
+            if (response.ok) {
+                // 3. SUCCESS: GET TOKEN
+                const data = await response.json();
+                
+                // 4. SAVE TO LOCAL STORAGE (The Browser's Pocket)
+                localStorage.setItem('access_token', data.access_token);
+                
+                // 5. REDIRECT
+                window.location.href = '/dashboard';
+            } else {
+                // FAILURE
+                errorMsg.style.display = 'block';
+                errorMsg.innerText = "Incorrect email or password";
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            errorMsg.innerText = "Server error. Is the backend running?";
+            errorMsg.style.display = 'block';
+        }
+    });
+</script>
+{% endblock %}
