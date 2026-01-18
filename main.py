@@ -336,3 +336,8 @@ def dashboard_page(request: Request):
 @app.get("/manage/{club_id}")
 def manage_club_page(club_id: int, request: Request):
     return templates.TemplateResponse("manage.html", {"request": request, "club_id": club_id})
+
+# 5. SERVE SCANNER PAGE
+@app.get("/scan")
+def scan_page(request: Request):
+    return templates.TemplateResponse("scan.html", {"request": request})

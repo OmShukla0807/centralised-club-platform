@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 
 {% block title %}Dashboard - Campus Connect{% endblock %}
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>All Clubs</h2>
+    <a href="/scan" class="btn" style="background-color: #7c3aed;">📷 Scan QR</a>
+</div>
+
+<div id="clubs-container">
 
 {% block content %}
 <h2>All Clubs</h2>

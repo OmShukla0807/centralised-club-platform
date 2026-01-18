@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Scan QR - Campus Connect{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 2rem auto; text-align: center;">
+    <h2>Scan Attendance QR</h2>
+    <p>Point your camera at the event QR code.</p>
+    
+    <div id="reader" style="width: 100%; margin-top: 1rem;"></div>
+    
+    <div id="result-message" style="margin-top: 1rem; font-weight: bold;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) window.location.href = "/login-page";
+
+    // 1. WHAT HAPPENS WHEN SCAN IS SUCCESSFUL?
+    async function onScanSuccess(decodedText, decodedResult) {
+        // decodedText is just the Activity ID (e.g., "5")
+        console.log(`Code matched = ${decodedText}`, decodedResult);
+        
+        // Stop scanning temporarily so we don't send 50 requests
+        html5QrcodeScanner.clear();
+
+        document.getElementById("result-message").innerText = "Processing...";
+
+        // 2. SEND TO BACKEND
+        try {
+            const response = await fetch("/attendance", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ 
+                    activity_id: parseInt(decodedText) // Convert "5" to 5
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // SUCCESS
+                document.getElementById("reader").innerHTML = `
+                    <div style="color: green; font-size: 1.5rem;">
+                        ✅ ${data.message}
+                    </div>
+                    <br>
+                    <button class="btn" onclick="window.location.reload()">Scan Another</button>
+                `;
+            } else {
+                // FAILURE (e.g., Duplicate or Not Member)
+                document.getElementById("result-message").innerHTML = `
+                    <span style="color: red;">❌ ${data.detail}</span>
+                    <br><br>
+                    <button class="btn" onclick="window.location.reload()">Try Again</button>
+                `;
+            }
+        } catch (err) {
+            console.error(err);
+            document.getElementById("result-message").innerText = "Server Error.";
+        }
+    }
+
+    function onScanFailure(error) {
+        // Handle scan failure, usually better to ignore and keep scanning.
+        // console.warn(`Code scan error = ${error}`);
+    }
+
+    // 3. INITIALIZE SCANNER
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+    );
+    
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+</script>
+{% endblock %}
